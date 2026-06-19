@@ -29,8 +29,8 @@ export default function IngenieroDashboard() {
         .from('ingenieros').select('*').eq('id', user.id).single()
       setIngeniero(ing)
       const { data: vinc } = await supabase
-        .from('vinculaciones').select('productor_id, productores(*)')
-        .eq('ingeniero_id', user.id)
+        .from('ing_vinculaciones').select('productor_id, productores(*)')
+.eq('ingeniero_id', user.id)
       if (vinc) setProductores(vinc.map((v: any) => v.productores))
       setLoading(false)
     }
