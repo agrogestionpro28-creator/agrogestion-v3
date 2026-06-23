@@ -25,17 +25,26 @@ export default function IngenieroDashboard() {
         .from('ingenieros').select('*').eq('id', user.id).single()
       setIngeniero(ing)
 
-      const { data: vinc } = await supabase
+      const { data: vinc, error } = await supabase
         .from('vinculaciones')
-        .select('empresa_id, empresas(*)')
+        .select('empresa_id')
         .eq('profesional_id', user.id)
 
-      if (vinc) setEmpresas(vinc.map((v: any) => v.empresas).filter(Boolean))
+      console.log('vinc:', vinc, 'error:', error)
+
+      if (vinc && vinc.length > 0) {
+        const ids = vinc.map((v: any) => v.empresa_id)
+        const { data: emps, error: empError } = await supabase
+          .from('empresas')
+          .select('*')
+          .in('id', ids)
+        console.log('emps:', emps, 'empError:', empError)
+        if (emps) setEmpresas(emps)
+      }
       setLoading(false)
     }
     init()
   }, [])
-
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex',
       alignItems: 'center', justifyContent: 'center', color: '#d4a017',
