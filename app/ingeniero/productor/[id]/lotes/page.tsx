@@ -67,11 +67,12 @@ export default function LotesProductor() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
           gap: '14px', marginBottom: '20px' }}>
           {lotes.map(l => (
-            <div key={l.id}
-              style={{ background: '#141414', border: '1px solid #2a2200',
-                borderRadius: '10px', padding: '16px',
-                borderTop: '2px solid #d4a017', position: 'relative', overflow: 'hidden' }}>
-              <svg style={{ position: 'absolute', bottom: '-8px', right: '-8px', opacity: 0.06 }}
+           <div key={l.id}
+  onClick={() => router.push(`/ingeniero/productor/${empresaId}/lotes/${l.id}`)}
+  style={{ background: '#141414', border: '1px solid #2a2200',
+    borderRadius: '10px', padding: '16px', cursor: 'pointer',
+    borderTop: '2px solid #d4a017', position: 'relative', overflow: 'hidden' }}>
+  <svg style={{ position: 'absolute', bottom: '-8px', right: '-8px', opacity: 0.06 }}
                 width="60" height="60" viewBox="0 0 60 60">
                 <polygon points="30,5 52,17 52,43 30,55 8,43 8,17"
                   fill="none" stroke="#d4a017" strokeWidth="1"/>
