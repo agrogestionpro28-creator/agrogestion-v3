@@ -75,7 +75,7 @@ export default function IngenieroDashboard() {
             textTransform: 'uppercase' }}>Mis Productores</span>
           <span style={{ color: '#d4a017', fontSize: '12px', background: '#1a1400',
             border: '1px solid #3a2e00', padding: '4px 12px', borderRadius: '6px' }}>
-            Campaña 2025/26
+            Campaña 2026/27
           </span>
         </div>
 
