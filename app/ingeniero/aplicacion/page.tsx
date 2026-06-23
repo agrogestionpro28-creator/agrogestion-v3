@@ -293,21 +293,24 @@ export default function NuevaAplicacion() {
                 </div>
               </div>
             </div>
-            <button onClick={() => window.print()}
-              style={{ width: '100%', background: '#d4a017', color: '#0a0a0a',
-                padding: '14px', borderRadius: '10px', border: 'none',
-                fontWeight: '700', fontSize: '15px', cursor: 'pointer', marginBottom: '10px' }}>
-              📸 Capturar / Compartir
-            </button>
-            <button onClick={() => { setPaso(1); setLotesSeleccionados([]); setProductos([{ nombre: '', dosis: '', unidad: 'lt/ha' }]) }}
-              style={{ width: '100%', background: 'transparent', color: '#d4a017',
-                padding: '12px', borderRadius: '10px', border: '1px solid #3a2e00',
-                fontSize: '13px', cursor: 'pointer' }}>
-              Nueva aplicación
-            </button>
+            <button onClick={async () => {
+  const el = document.getElementById('receta')
+  if (!el) return
+  const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' })
+  const link = document.createElement('a')
+  link.download = `receta-${empresaNombre}-${fecha}.png`
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+}}
+  style={{ width: '100%', background: '#d4a017', color: '#0a0a0a',
+    padding: '14px', borderRadius: '10px', border: 'none',
+    fontWeight: '700', fontSize: '15px', cursor: 'pointer', marginBottom: '10px' }}>
+  📸 Descargar imagen
+</button>
+<button onClick={() => { setPaso(1); setLotesSeleccionados([]); setProductos([{ nombre: '', dosis: '', unidad: 'lt/ha' }]) }}
+  style={{ width: '100%', background: 'transparent', color: '#d4a017',
+    padding: '12px', borderRadius: '10px', border: '1px solid #3a2e00',
+    fontSize: '13px', cursor: 'pointer' }}>
+  Nueva aplicación
+</button>
           </div>
-        )}
-      </div>
-    </main>
-  )
-}
