@@ -1,117 +1,108 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../../lib/supabase'
+import { supabase } from '../../../../../lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 
-interface Lote {
-  id: string
-  nombre: string
-  cultivo: string
-  hectareas: number
-  estado: string
-}
+interface Labor { id: string; fecha: string; tipo: string; productos: any[]; observaciones: string }
+interface Fertilizacion { id?: string; fecha: string; producto: string; dosis: string; unidad: string; metodo: string }
+interface Cosecha { id?: string; fecha: string; humedad: string; rendimiento: string; destino: string; observaciones: string }
 
-export default function LotesProductor() {
+export default function CuadernoCampo() {
   const router = useRouter()
   const params = useParams()
+  const loteId = params.loteId as string
   const empresaId = params.id as string
-  const [empresa, setEmpresa] = useState<any>(null)
-  const [lotes, setLotes] = useState<Lote[]>([])
+  const [lote, setLote] = useState<any>(null)
+  const [labores, setLabores] = useState<Labor[]>([])
+  const [fertilizaciones, setFertilizaciones] = useState<Fertilizacion[]>([])
+  const [cosecha, setCosecha] = useState<Cosecha>({ fecha: '', humedad: '', rendimiento: '', destino: '', observaciones: '' })
+  const [editandoLote, setEditandoLote] = useState(false)
+  const [loteEdit, setLoteEdit] = useState<any>({})
   const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<'datos'|'aplicaciones'|'fertilizacion'|'cosecha'>('datos')
+  const [guardando, setGuardando] = useState(false)
 
   useEffect(() => {
     const init = async () => {
-      const { data: emp } = await supabase
-        .from('empresas').select('*').eq('id', empresaId).single()
-      setEmpresa(emp)
-      const { data: campana } = await supabase
-        .from('campanas').select('id')
-        .eq('nombre', '2026/2027').eq('empresa_id', empresaId).single()
-      const { data: lts } = await supabase
-        .from('lotes').select('*')
-        .eq('empresa_id', empresaId)
-        .eq('campana_id', campana?.id)
-        .order('nombre')
-      if (lts) setLotes(lts)
+      const { data: lt } = await supabase.from('lotes').select('*').eq('id', loteId).single()
+      setLote(lt)
+      setLoteEdit(lt || {})
+      const { data: lb } = await supabase.from('lote_labores').select('*')
+        .eq('lote_id', loteId).order('fecha', { ascending: false })
+      if (lb) setLabores(lb)
+      const { data: fert } = await supabase.from('lote_fertilizaciones').select('*')
+        .eq('lote_id', loteId).order('fecha')
+      if (fert) setFertilizaciones(fert)
+      const { data: cos } = await supabase.from('lote_cosecha').select('*')
+        .eq('lote_id', loteId).single()
+      if (cos) setCosecha(cos)
       setLoading(false)
     }
     init()
-  }, [empresaId])
+  }, [loteId])
 
-  const totalHas = lotes.reduce((a, l) => a + (Number(l.hectareas) || 0), 0)
+  const guardarLote = async () => {
+    setGuardando(true)
+    await supabase.from('lotes').update({
+      variedad: loteEdit.variedad,
+      fecha_siembra_real: loteEdit.fecha_siembra_real || null,
+      fecha_cosecha_real: loteEdit.fecha_cosecha_real || null,
+      sistema_produccion: loteEdit.sistema_produccion,
+      objetivo_rinde: loteEdit.objetivo_rinde || null,
+      ubicacion: loteEdit.ubicacion,
+      obs_generales: loteEdit.obs_generales,
+      cultivo: loteEdit.cultivo,
+      hectareas: loteEdit.hectareas
+    }).eq('id', loteId)
+    setLote({ ...lote, ...loteEdit })
+    setEditandoLote(false)
+    setGuardando(false)
+  }
+
+  const agregarFertilizacion = () =>
+    setFertilizaciones([...fertilizaciones, { fecha: '', producto: '', dosis: '', unidad: 'kg/ha', metodo: '' }])
+
+  const guardarFertilizacion = async (f: Fertilizacion, i: number) => {
+    if (f.id) {
+      await supabase.from('lote_fertilizaciones').update(f).eq('id', f.id)
+    } else {
+      const { data } = await supabase.from('lote_fertilizaciones').insert({ ...f, lote_id: loteId }).select().single()
+      if (data) {
+        const nuevas = [...fertilizaciones]
+        nuevas[i] = data
+        setFertilizaciones(nuevas)
+      }
+    }
+  }
+
+  const guardarCosecha = async () => {
+    setGuardando(true)
+    if (cosecha.id) {
+      await supabase.from('lote_cosecha').update(cosecha).eq('id', cosecha.id)
+    } else {
+      const { data } = await supabase.from('lote_cosecha').insert({ ...cosecha, lote_id: loteId }).select().single()
+      if (data) setCosecha(data)
+    }
+    setGuardando(false)
+  }
+
+  const inputStyle: any = {
+    background: '#1a1400', border: '1px solid #2a2200', borderRadius: '6px',
+    padding: '8px 12px', color: '#f5f0e8', fontSize: '13px', outline: 'none', width: '100%'
+  }
+
+  const labelStyle: any = {
+    color: '#a09070', fontSize: '10px', textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px', display: 'block', marginBottom: '4px'
+  }
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', color: '#d4a017',
-      fontFamily: 'Inter, sans-serif' }}>Cargando...</div>
+      alignItems: 'center', justifyContent: 'center', color: '#d4a017', fontFamily: 'Inter, sans-serif' }}>
+      Cargando...
+    </div>
   )
 
   return (
     <main style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'Inter, sans-serif' }}>
       <div style={{ background: '#111', borderBottom: '1px solid #2a2200',
-        padding: '14px 24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => router.back()}
-          style={{ background: 'transparent', border: 'none', color: '#d4a017',
-            fontSize: '20px', cursor: 'pointer' }}>←</button>
-        <div style={{ flex: 1 }}>
-          <div style={{ color: '#d4a017', fontWeight: '700', fontSize: '15px' }}>
-            {empresa?.nombre} — Lotes
-          </div>
-          <div style={{ color: '#6a5f40', fontSize: '11px' }}>
-            {lotes.length} lotes · {totalHas.toFixed(0)} has
-          </div>
-        </div>
-      </div>
-
-      <div style={{ padding: '20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: '14px', marginBottom: '20px' }}>
-          {lotes.map(l => (
-           <div key={l.id}
-  onClick={() => router.push(`/ingeniero/productor/${empresaId}/lotes/${l.id}`)}
-  style={{ background: '#141414', border: '1px solid #2a2200',
-    borderRadius: '10px', padding: '16px', cursor: 'pointer',
-    borderTop: '2px solid #d4a017', position: 'relative', overflow: 'hidden' }}>
-  <svg style={{ position: 'absolute', bottom: '-8px', right: '-8px', opacity: 0.06 }}
-                width="60" height="60" viewBox="0 0 60 60">
-                <polygon points="30,5 52,17 52,43 30,55 8,43 8,17"
-                  fill="none" stroke="#d4a017" strokeWidth="1"/>
-              </svg>
-              <div style={{ color: '#f5f0e8', fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>
-                {l.nombre}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ background: '#1a1400', border: '1px solid #3a2e00',
-                  color: '#d4a017', padding: '3px 8px', borderRadius: '4px',
-                  fontSize: '11px', textTransform: 'uppercase' }}>
-                  {l.cultivo}
-                </div>
-                <div style={{ color: '#d4a017', fontWeight: '700', fontSize: '15px' }}>
-                  {l.hectareas} has
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <div onClick={() => router.push(`/ingeniero/productor/${empresaId}/nuevo-lote`)}
-            style={{ background: '#141414', border: '1px dashed #2a2200',
-              borderRadius: '10px', padding: '16px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              minHeight: '90px' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ color: '#3a2e00', fontSize: '24px', marginBottom: '4px' }}>+</div>
-              <div style={{ color: '#5a5040', fontSize: '12px' }}>Agregar lote</div>
-            </div>
-          </div>
-        </div>
-
-        <button onClick={() => router.push(`/ingeniero/aplicacion?empresa=${empresaId}`)}
-          style={{ width: '100%', background: '#d4a017', color: '#0a0a0a',
-            padding: '16px', borderRadius: '10px', border: 'none',
-            fontWeight: '700', fontSize: '15px', cursor: 'pointer' }}>
-          + Nueva Aplicación
-        </button>
-      </div>
-    </main>
-  )
-}
