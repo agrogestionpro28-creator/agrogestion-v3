@@ -111,4 +111,20 @@ export default function ProductorDetalle() {
           </div>
         </div>
 
-        <button onClick={() =>
+        <button onClick={() => router.push(`/ingeniero/aplicacion?empresa=${empresaId}`)}
+          style={{ width: '100%', background: '#d4a017', color: '#0a0a0a',
+            padding: '16px', borderRadius: '10px', border: 'none',
+            fontWeight: '700', fontSize: '15px', cursor: 'pointer', marginBottom: '10px' }}>
+          + Nueva Aplicación
+        </button>
+
+        <button
+          style={{ width: '100%', background: 'transparent', color: '#d4a017',
+            padding: '12px', borderRadius: '10px', border: '1px solid #3a2e00',
+            fontWeight: '500', fontSize: '13px', cursor: 'pointer' }}>
+          Exportar Excel
+        </button>
+      </div>
+    </main>
+  )
+}
