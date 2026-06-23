@@ -24,13 +24,17 @@ export default function ProductorDetalle() {
       const { data: emp } = await supabase
         .from('empresas').select('*').eq('id', empresaId).single()
       setEmpresa(emp)
-     const { data: campanas } = await supabase
-  .from('campanas').select('id').eq('nombre', '2026/2027').single()
+     const { data: campana } = await supabase
+  .from('campanas')
+  .select('id')
+  .eq('nombre', '2026/2027')
+  .eq('empresa_id', empresaId)
+  .single()
 
 const { data: lts } = await supabase
   .from('lotes').select('*')
   .eq('empresa_id', empresaId)
-  .eq('campana_id', campanas?.id)
+  .eq('campana_id', campana?.id)
   .order('nombre')
       if (lts) setLotes(lts)
       setLoading(false)
