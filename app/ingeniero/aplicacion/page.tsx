@@ -314,3 +314,8 @@ export default function NuevaAplicacion() {
   Nueva aplicación
 </button>
           </div>
+ )}
+      </div>
+    </main>
+  )
+}
