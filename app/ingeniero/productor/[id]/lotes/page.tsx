@@ -15,6 +15,15 @@ const cultivoColor: any = {
 }
 const getColor = (cultivo: string) => cultivoColor[(cultivo || '').toLowerCase()] || '#6a5f40'
 
+const ordenarLotes = (lotes: Lote[]) => {
+  return [...lotes].sort((a, b) => {
+    const numA = parseInt(a.nombre.match(/\d+/)?.[0] || '9999')
+    const numB = parseInt(b.nombre.match(/\d+/)?.[0] || '9999')
+    if (numA !== numB) return numA - numB
+    return a.nombre.localeCompare(b.nombre)
+  })
+}
+
 export default function LotesProductor() {
   const router = useRouter()
   const params = useParams()
@@ -22,6 +31,7 @@ export default function LotesProductor() {
   const [empresa, setEmpresa] = useState<any>(null)
   const [lotes, setLotes] = useState<Lote[]>([])
   const [campanaId, setCampanaId] = useState('')
+  const [filtro, setFiltro] = useState('todos')
   const [loading, setLoading] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -33,20 +43,20 @@ export default function LotesProductor() {
         .eq('nombre', '2026/2027').eq('empresa_id', empresaId).single()
       setCampanaId(campana?.id || '')
       const { data: lts } = await supabase.from('lotes').select('*')
-        .eq('empresa_id', empresaId).eq('campana_id', campana?.id).order('nombre')
-      if (lts) setLotes(lts)
+        .eq('empresa_id', empresaId).eq('campana_id', campana?.id)
+      if (lts) setLotes(ordenarLotes(lts))
       setLoading(false)
     }
     init()
   }, [empresaId])
 
-  const totalHas = lotes.reduce((a, l) => a + (Number(l.hectareas) || 0), 0)
+  const cultivosUnicos = ['todos', ...Array.from(new Set(lotes.map(l => (l.cultivo || '').toLowerCase()))).filter(Boolean)]
+  const lotesFiltrados = filtro === 'todos' ? lotes : lotes.filter(l => (l.cultivo || '').toLowerCase() === filtro)
+  const totalHas = lotesFiltrados.reduce((a, l) => a + (Number(l.hectareas) || 0), 0)
 
   const exportarExcel = () => {
     const data = lotes.map(l => ({
-      'Nombre': l.nombre,
-      'Cultivo': l.cultivo,
-      'Hectáreas': l.hectareas,
+      'Nombre': l.nombre, 'Cultivo': l.cultivo, 'Hectáreas': l.hectareas,
     }))
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
@@ -65,16 +75,15 @@ export default function LotesProductor() {
       const rows: any[] = XLSX.utils.sheet_to_json(ws)
       for (const row of rows) {
         await supabase.from('lotes').insert({
-          empresa_id: empresaId,
-          campana_id: campanaId,
+          empresa_id: empresaId, campana_id: campanaId,
           nombre: row['Nombre'] || row['nombre'],
           cultivo: row['Cultivo'] || row['cultivo'],
           hectareas: row['Hectáreas'] || row['hectareas'] || row['has'],
         })
       }
       const { data: lts } = await supabase.from('lotes').select('*')
-        .eq('empresa_id', empresaId).eq('campana_id', campanaId).order('nombre')
-      if (lts) setLotes(lts)
+        .eq('empresa_id', empresaId).eq('campana_id', campanaId)
+      if (lts) setLotes(ordenarLotes(lts))
     }
     reader.readAsArrayBuffer(file)
     e.target.value = ''
@@ -95,11 +104,29 @@ export default function LotesProductor() {
           style={{ background: 'transparent', border: 'none', color: '#d4a017', fontSize: '20px', cursor: 'pointer' }}>←</button>
         <div style={{ flex: 1 }}>
           <div style={{ color: '#d4a017', fontWeight: '700', fontSize: '15px' }}>{empresa?.nombre} — Lotes</div>
-          <div style={{ color: '#6a5f40', fontSize: '11px' }}>{lotes.length} lotes · {totalHas.toFixed(0)} has</div>
+          <div style={{ color: '#6a5f40', fontSize: '11px' }}>{lotesFiltrados.length} lotes · {totalHas.toFixed(0)} has</div>
         </div>
       </div>
 
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '16px 20px 0' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          {cultivosUnicos.map(c => {
+            const color = c === 'todos' ? '#d4a017' : getColor(c)
+            const activo = filtro === c
+            return (
+              <button key={c} onClick={() => setFiltro(c)}
+                style={{ background: activo ? color : 'transparent',
+                  border: `1px solid ${color}`,
+                  color: activo ? '#0a0a0a' : color,
+                  padding: '5px 12px', borderRadius: '20px',
+                  fontSize: '11px', cursor: 'pointer', fontWeight: '600',
+                  textTransform: 'uppercase' }}>
+                {c === 'todos' ? 'Todos' : c}
+              </button>
+            )
+          })}
+        </div>
+
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
           <button onClick={exportarExcel}
             style={{ flex: 1, background: 'transparent', color: '#d4a017',
@@ -115,10 +142,12 @@ export default function LotesProductor() {
           </button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={importarExcel} />
         </div>
+      </div>
 
+      <div style={{ padding: '0 20px 20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
           gap: '14px', marginBottom: '20px' }}>
-          {lotes.map(l => {
+          {lotesFiltrados.map(l => {
             const color = getColor(l.cultivo)
             return (
               <div key={l.id}
